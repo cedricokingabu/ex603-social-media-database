@@ -21,7 +21,7 @@ DROP TABLE IF EXISTS social_media.users CASCADE;
 
 -- 1. USERS TABLE
 CREATE TABLE social_media.users (
-    id SERIAL PRIMARY KEY,
+    id INTEGER PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
@@ -37,8 +37,8 @@ CREATE TABLE social_media.users (
 
 -- 2. POSTS TABLE
 CREATE TABLE social_media.posts (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL,
+    id INTEGER PRIMARY KEY,
+    user_id INTEGER NOT NULL,
     content TEXT NOT NULL,
     image_url VARCHAR(500),
     video_url VARCHAR(500),
@@ -46,25 +46,25 @@ CREATE TABLE social_media.posts (
     is_deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES  social_media.users(id) ON DELETE CASCADE
+   Constraint fk_posts_referral FOREIGN KEY (user_id) REFERENCES  social_media.users(id) ON DELETE CASCADE
 );
 
 
 -- 3. LIKES TABLE
 CREATE TABLE  social_media.likes (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL,
-    post_id INT NOT NULL,
+    id INTEGER PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    post_id INTEGER NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, post_id),
-    FOREIGN KEY (user_id) REFERENCES  social_media.users(id) ON DELETE CASCADE,
-    FOREIGN KEY (post_id) REFERENCES  social_media.posts(id) ON DELETE CASCADE
+    Constraint uq_likes UNIQUE(user_id, post_id),
+   Constraint fk_likes_referral FOREIGN KEY (user_id) REFERENCES  social_media.users(id) ON DELETE CASCADE,
+   Constraint fk_likes_referral_2 FOREIGN KEY (post_id) REFERENCES  social_media.posts(id) ON DELETE CASCADE
 );
 
 
 -- 4. HASHTAGS TABLE
 CREATE TABLE  social_media.hashtags (
-    id SERIAL PRIMARY KEY,
+    id INTEGER PRIMARY KEY,
     tag_name VARCHAR(100) UNIQUE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -72,25 +72,25 @@ CREATE TABLE  social_media.hashtags (
 
 -- 5. POST_HASHTAGS TABLE (Junction/Bridge Table)
 CREATE TABLE  social_media.post_hashtags (
-    id SERIAL PRIMARY KEY,
-    post_id INT NOT NULL,
-    hashtag_id INT NOT NULL,
-    UNIQUE(post_id, hashtag_id),
-    FOREIGN KEY (post_id) REFERENCES  social_media.posts(id) ON DELETE CASCADE,
-    FOREIGN KEY (hashtag_id) REFERENCES social_media.hashtags(id) ON DELETE CASCADE
+    id INTEGER PRIMARY KEY,
+    post_id INTEGER NOT NULL,
+    hashtag_id INTEGER NOT NULL,
+    Constraint uq_posts_hashtags UNIQUE(post_id, hashtag_id),
+    Constraint fk_posts_hashtags_referral FOREIGN KEY (post_id) REFERENCES  social_media.posts(id) ON DELETE CASCADE,
+    Constraint fk_posts_hashtags_referral_2 FOREIGN KEY (hashtag_id) REFERENCES social_media.hashtags(id) ON DELETE CASCADE
 );
 
 
 -- 6. DWELL_MS TABLE (Engagement/Time Tracking)
 CREATE TABLE  social_media.dwell_ms (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL,
-    post_id INT NOT NULL,
-    dwell_time_ms INT NOT NULL,  -- Milliseconds spent viewing
-    view_count INT DEFAULT 1,
+    id INTEGER PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    post_id INTEGER NOT NULL,
+    dwell_time_ms INTEGER NOT NULL,  -- Milliseconds spent viewing
+    view_count INTEGER DEFAULT 1,
     viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES  social_media.users(id) ON DELETE CASCADE,
-    FOREIGN KEY (post_id) REFERENCES  social_media.posts(id) ON DELETE CASCADE
+   Constraint fk_dwells_ms_referral FOREIGN KEY (user_id) REFERENCES  social_media.users(id) ON DELETE CASCADE,
+   Constraint fk_posts_dwells_ms_referral_2 FOREIGN KEY (post_id) REFERENCES  social_media.posts(id) ON DELETE CASCADE
 );
 
 
