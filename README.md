@@ -208,12 +208,12 @@ CREATE TABLE social_media.users (...)
 **Shortcut**: Use SET search_path TO social_media; to omit prefix
 
 
-### 2. Surrogate Keys (SERIAL PRIMARY KEY)
+### 2. Surrogate Keys (INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY)
 **Decision**: Use auto-incrementing integers as primary keys, not natural keys.
 
 **sql:**
 
-- id SERIAL PRIMARY KEY  
+- id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY  
 - ✅ Surrogate key
 -  NOT: username VARCHAR(50) PRIMARY KEY  
 -  ❌ Natural key
@@ -277,7 +277,6 @@ username VARCHAR(50) UNIQUE NOT NULL,
 email VARCHAR(255) UNIQUE NOT NULL,
 tag_name VARCHAR(100) UNIQUE NOT NULL,
 UNIQUE(user_id, post_id),  -- Composite unique
-UNIQUE(post_id, hashtag_id)
 
 What It Prevents:
 
@@ -285,7 +284,7 @@ What It Prevents:
 - ❌ Two users with same email
 - ❌ Two hashtags with same name
 - ❌ One user liking the same post twice
-- ❌ Same hashtag tagged on same post twice
+
   
 **Benefits**:
 
@@ -300,10 +299,15 @@ What It Prevents:
 **Option A**: Junction Table (CHOSEN)
 
 **sql**
-CREATE TABLE post_hashtags (
-    post_id INT,
-    hashtag_id INT,
-    UNIQUE(post_id, hashtag_id)
+CREATE TABLE  social_media.post_hashtags (
+    post_id INTEGER NOT NULL,
+    hashtag_id INTEGER NOT NULL,
+    assigned_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     CONSTRAINT pk_post_hashtags PRIMARY KEY (post_id, hashtag_id),
+    CONSTRAINT fk_post_hashtags_post FOREIGN KEY (post_id)
+        REFERENCES social_media.posts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_post_hashtags_hashtag FOREIGN KEY (hashtag_id)
+        REFERENCES social_media.hashtags(id) ON DELETE RESTRICT
 );
 Option B: JSON Denormalization (NOT CHOSEN)
 
