@@ -191,9 +191,13 @@ CREATE TABLE social_media.users (...)
 ### 2. Surrogate Keys (SERIAL PRIMARY KEY)
 **Decision**: Use auto-incrementing integers as primary keys, not natural keys.
 
-sql
-id SERIAL PRIMARY KEY  -- ✅ Surrogate key
--- NOT: username VARCHAR(50) PRIMARY KEY  -- ❌ Natural key
+**sql:**
+
+- id SERIAL PRIMARY KEY  
+- ✅ Surrogate key
+-  NOT: username VARCHAR(50) PRIMARY KEY  
+-  ❌ Natural key
+
 **Benefits**:
 
 - ✅ Small Size: 4 bytes (int) vs 50+ bytes (varchar)
@@ -207,9 +211,10 @@ id SERIAL PRIMARY KEY  -- ✅ Surrogate key
 **Decision**: Mark posts as deleted rather than permanently removing them.
 
 **sql**
+
 is_deleted BOOLEAN DEFAULT FALSE,
 -- Query: WHERE is_deleted = FALSE
-Alternative: Hard delete (physically remove rows)
+**Alternative**: Hard delete (physically remove rows)
 
 Benefits of Soft Deletes:
 
@@ -218,13 +223,15 @@ Benefits of Soft Deletes:
 - ✅ Referential Integrity: Related data (likes, comments) remains valid
 - ✅ Legal/Compliance: Some regulations require keeping historical data
 - ✅ Performance: No cascading deletes needed
+
 **Trade-off**: Must filter WHERE is_deleted = FALSE in queries
 
 ### 4. Cascade Deletes
 **Decision**: When a user is deleted, automatically delete all their posts, likes, and engagement records.
 
 **sql**
-FOREIGN KEY (user_id) REFERENCES social_media.users(id) ON DELETE CASCADE
+
+|FOREIGN KEY (user_id) |REFERENCES social_media.users(id) ON DELETE CASCADE|
 How It Works:
 
 **sql**
@@ -245,11 +252,13 @@ DELETE FROM users WHERE id = 1;
 **Decision**: Enforce uniqueness at database level for critical fields.
 
 **sql**
+
 username VARCHAR(50) UNIQUE NOT NULL,
 email VARCHAR(255) UNIQUE NOT NULL,
 tag_name VARCHAR(100) UNIQUE NOT NULL,
 UNIQUE(user_id, post_id),  -- Composite unique
 UNIQUE(post_id, hashtag_id)
+
 What It Prevents:
 
 - ❌ Two users with same username
@@ -329,10 +338,10 @@ Why Separate Table?
 - ✅ Performance: Won't bloat posts table
 - ✅ Analytics: Time-series queries are cleaner
 - ✅ Archival: Easy to archive old engagement data
-Alternative: Store in posts table
+**Alternative**: Store in posts table
 
 sql
--- ❌ NOT CHOSEN: bloats posts table, inflexible
+-  ❌ NOT CHOSEN: bloats posts table, inflexible
 CREATE TABLE posts (
     ...
     total_dwell_ms INT,
@@ -343,12 +352,14 @@ CREATE TABLE posts (
 **Decision**: Create 6 strategic indexes for common queries.
 
 **sql**
-CREATE INDEX idx_posts_user_id ON social_media.posts(user_id);
-CREATE INDEX idx_posts_created_at ON social_media.posts(created_at);
-CREATE INDEX idx_likes_user_id ON social_media.likes(user_id);
-CREATE INDEX idx_likes_post_id ON social_media.likes(post_id);
-CREATE INDEX idx_post_hashtags_hashtag_id ON social_media.post_hashtags(hashtag_id);
-CREATE INDEX idx_dwell_user_post ON social_media.dwell_ms(user_id, post_id);
+
+|CREATE INDEX idx_posts_user_id ON social_media.posts(user_id);|
+|CREATE INDEX idx_posts_created_at ON social_media.posts(created_at);|
+|CREATE INDEX idx_likes_user_id ON social_media.likes(user_id);|
+|CREATE INDEX idx_likes_post_id ON social_media.likes(post_id);|
+|CREATE INDEX idx_post_hashtags_hashtag_id ON social_media.post_hashtags(hashtag_id);|
+|CREATE INDEX idx_dwell_user_post ON social_media.dwell_ms(user_id, post_id);|
+
 
 Why These Indexes?
 
@@ -381,12 +392,12 @@ What is Normalization?
 - ✅ Flexible Queries: Works with joins
 - ✅ Scalability: Easy to add new features
 - 
-**Trade-off**: Requires joins (but indexes make it fast)
+**Trade-off**: Requires joins (but indexes make it fast).
 
 **Example**:
 
 __sql__
--- ❌ NOT 3NF: hashtag data repeated
+- ❌ NOT 3NF: hashtag data repeated
 CREATE TABLE posts_bad (
     id INT,
     content TEXT,
@@ -394,10 +405,10 @@ CREATE TABLE posts_bad (
     hashtag_created_at TIMESTAMP
 );
 
--- ✅ 3NF: separate tables
-CREATE TABLE posts (id INT, content TEXT);
-CREATE TABLE hashtags (id INT, tag_name VARCHAR(100), created_at TIMESTAMP);
-CREATE TABLE post_hashtags (post_id INT, hashtag_id INT);
+-  ✅ 3NF: separate tables
+- CREATE TABLE posts (id INT, content TEXT);
+- CREATE TABLE hashtags (id INT, tag_name VARCHAR(100), created_at TIMESTAMP);
+- CREATE TABLE post_hashtags (post_id INT, hashtag_id INT);
 
 
 ## 🚀 Installation
