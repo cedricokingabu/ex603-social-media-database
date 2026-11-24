@@ -1,0 +1,7 @@
+# Leadership finding
+
+The available data does not identify users. It identifies posts by `post_id`, so the breakdown below is by post, not users. Among posts with at least 18 events, the highest observed failure rates were [post IDs and rates].
+
+I would investigate [two or three post IDs] first because they combine a comparatively high failure rate with at least 18 events. This threshold reduces attention to very small samples, but does not establish statistical certainty.
+
+Conditional aggregation matters because it lets the database count all events and count flagged events during the same grouped scan. With two separate filtered queries, the database may have to read the million-row event table twice—once to count all events and again to count failures. That can mean more disk input, CPU work, and query time, especially when the table is large or frequently queried. Separate queries can also produce mismatched results if events are added or changed between runs, unless both queries use the same consistent snapshot. A single query returns the numerator and denominator together, making the failure-rate calculation easier to audit and less prone to accidental inconsistency. The gain depends on the database’s optimizer, indexes, caching, and workload; it is not guaranteed to be exactly twice as fast. Conditional aggregation does not solve problems with the definition of failure, missing identifiers, or low sample sizes. The results still need careful interpretation before leadership acts on them.
