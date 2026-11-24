@@ -21,6 +21,7 @@ This is a project of a social media database handling  post creation , rating an
 5. [Installation](#installation)
 6. [Usage](#usage)
 7. [Sample Queries](#sample-queries)
+8. [Unit 4 Query Catalogue](#unit-4-query-catalogue)
 
 ---
 
@@ -439,3 +440,142 @@ CREATE TABLE posts_bad (
  Prerequisites
 
 
+## Unit 4 Query Catalogue
+
+The queries below use the schema documented in this README. Here, a producer
+means the user who authored a post (`posts.user_id`). The engagement events
+come from `dwell_ms`, and the metric is `dwell_time_ms`.
+
+### 1. Overall engagement-event statistics
+
+**Business question:** Across all recorded view events, how many events are there,
+how much total viewing time was recorded, what are the average, minimum, and
+maximum viewing times, and how many distinct viewers are represented?
+
+```sql
+SELECT
+    COUNT(*) AS event_count,
+    SUM(dwell_time_ms) AS total_dwell_ms,
+    ROUND(AVG(dwell_time_ms)) AS average_dwell_ms,
+    MIN(dwell_time_ms) AS minimum_dwell_ms,
+    MAX(dwell_time_ms) AS maximum_dwell_ms,
+    COUNT(DISTINCT user_id) AS distinct_viewers
+FROM social_media.dwell_ms;
+```
+
+### 2. Average metric for each like
+**Business question:** Across all recorded events, what is the average metric for each event.
+
+```sql
+SELECT
+    post_id,
+    COUNT(*)       AS event_count,
+    ROUND(AVG(dwell_ms) ) AS average_metric
+FROM likes
+GROUP BY post_id
+ORDER BY event_count DESC;
+```
+
+### 3. Remove rate per post
+**Business question:** This query will answer the correlation among failure and number of events
+
+```sql
+SELECT
+    p.post_id,
+    p.post_title,
+    COUNT(l.like_id) AS like_events,
+    COUNT(l.like_id) FILTER (WHERE l.unliked_at IS NOT NULL) AS removed_likes,
+    ROUND(
+        100.0 * COUNT(l.like_id) FILTER (WHERE l.unliked_at IS NOT NULL)
+        / NULLIF(COUNT(l.like_id), 0),
+        2
+    ) AS removed_like_rate_pct
+FROM posts AS p
+JOIN likes AS l ON l.post_id = p.post_id
+GROUP BY p.post_id, p.post_title
+HAVING COUNT(l.like_id) >= 12
+ORDER BY removed_like_rate_pct DESC;
+```
+
+### 4. Regional Failure rate per countries
+**Business question:** The query shows the regional performance of the application so the leadership can better understand their regional impact.
+
+```sql
+SELECT
+    client_country AS region,
+    reaction_status,
+    COUNT(*) AS event_count,
+    ROUND(AVG(dwell_ms)) AS average_dwell_ms,
+    MIN(dwell_ms) AS minimum_dwell_ms,
+    MAX(dwell_ms) AS maximum_dwell_ms
+FROM likes
+GROUP BY client_country, reaction_status
+ORDER BY region, reaction_status;
+```
+
+### 5. Two numbers in one pass
+**Business question:** For each producer, compute the total number of events and the total number of events classified as failures, in a single pass over the event table, without a WHERE clause filtering the whole query.
+
+```sql
+SELECT
+    p.post_id,
+    p.post_title,
+    COUNT(*) AS total_events,
+    SUM(CASE
+            WHEN l.reaction_status = 'flagged' THEN 1
+            ELSE 0
+        END) AS failure_events
+FROM likes AS l
+JOIN posts AS p ON p.post_id = l.post_id
+GROUP BY p.post_id, p.post_title
+ORDER BY failure_events DESC;
+
+```
+
+### 6. Subtotals and a grand total
+***Business question:*** The regional director wants subtotals per region and a platform grand total, not the detail rows.
+
+```sql
+SELECT
+    CASE
+        WHEN GROUPING(client_country) = 1 THEN 'PLATFORM GRAND TOTAL'
+        ELSE client_country
+    END AS region,
+    COUNT(*) AS total_events,
+    SUM(CASE WHEN reaction_status = 'flagged' THEN 1 ELSE 0 END)
+        AS failure_events
+FROM likes
+GROUP BY ROLLUP (client_country)
+HAVING GROUPING(client_country) = 1
+    OR GROUPING(client_country) = 0
+ORDER BY GROUPING(client_country), client_country;
+
+```
+
+### 7. A two-step pipeline
+***Business question:***  Among authors with at least 18 recorded view events,
+how many qualify, and what is their average producer-level viewing-time average
+
+```sql
+
+WITH post_performance AS (
+    SELECT
+        post_id,
+        COUNT(*) AS event_count,
+        SUM(CASE
+                WHEN reaction_status = 'flagged' THEN 1
+                ELSE 0
+            END) AS failure_events
+    FROM likes
+    GROUP BY post_id
+)
+SELECT
+    COUNT(*) AS high_volume_posts,
+    ROUND(
+        AVG(100.0 * failure_events / NULLIF(event_count, 0)),
+        2
+    ) AS baseline_avg_failure_rate_pct
+FROM post_performance
+WHERE event_count >= 18;
+
+```
